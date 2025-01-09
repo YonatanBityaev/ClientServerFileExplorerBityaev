@@ -3,14 +3,14 @@ import tkinter as tk
 from tkinter import Listbox, Scrollbar, messagebox
 
 
-# Function to display the directory structure (drives and directories)
-def display_file_structure(data):
+# Function to display directories in the server’s file explorer-like GUI
+def display_file_structure(data, parent=None):
     if not data:
         messagebox.showinfo("No Data", "No data received from the client.")
         return
 
     # Create a Tkinter window to display the data
-    window = tk.Tk()
+    window = tk.Tk() if parent is None else parent  # Reuse the same window if we are navigating
     window.title("Client's File Explorer")
     window.geometry('600x400')  # Set window size (width x height)
     window.eval('tk::PlaceWindow %s center' % window.winfo_toplevel())  # Center window
@@ -23,7 +23,7 @@ def display_file_structure(data):
     frame = tk.Frame(window)
     frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
 
-    # Create the Listbox to display the drives and directories
+    # Create the Listbox to display the directories
     listbox = Listbox(frame, width=50, height=15, font=("Arial", 10), bg="#f0f0f0", fg="#333", selectmode=tk.SINGLE, bd=2, relief="groove")
     listbox.pack(side="left", fill=tk.BOTH, expand=True)
 
@@ -33,9 +33,19 @@ def display_file_structure(data):
     # Link the scrollbar to the listbox
     listbox.config(yscrollcommand=scrollbar.set)
 
-    # Insert the received data into the Listbox
+    # Insert the received directories into the Listbox
     for item in data:
         listbox.insert(tk.END, item)
+
+    # Function to handle item selection (clicking on a directory)
+    def on_select(event):
+        selected_directory = listbox.get(listbox.curselection())
+        if selected_directory:
+            print(f"Selected directory: {selected_directory}")
+            client_send_data(selected_directory)  # Send the selected directory to the server
+
+    # Bind the select event for clicking on a directory
+    listbox.bind("<Double-1>", on_select)
 
     # Add a button to close the window
     close_button = tk.Button(window, text="Close", font=("Arial", 12), bg="#FF6347", fg="white", command=window.quit)
@@ -43,6 +53,7 @@ def display_file_structure(data):
 
     # Start the Tkinter event loop to display the window
     window.mainloop()
+
 
 # Set up the server socket to listen for connections
 def server_receive_data():
@@ -81,22 +92,11 @@ def server_receive_data():
 
             # Process the received data
             lines = message.split("\n")
-            drive = None
-            subdirs = []
-
-            for line in lines:
-                if line.startswith("DRIVE:"):
-                    if drive and subdirs:
-                        # Show previous drive's subdirectories
-                        display_file_structure(subdirs)
-                    drive = line.split(":")[1].strip()  # Get the drive
-                    subdirs = []
-                elif line.strip():
-                    subdirs.append(line.strip())
-
-            if drive and subdirs:
-                # Show the last drive's subdirectories
-                display_file_structure(subdirs)
+            if lines[0].startswith("USERDIRECTORY:"):
+                current_directory = lines[0].split(":")[1].strip()
+                directories = lines[1:]  # All remaining lines are directories
+                print(f"Received directories for: {current_directory}")
+                display_file_structure(directories)  # Display directories for the given path
 
     except Exception as e:
         print(f"Error during connection handling: {e}")

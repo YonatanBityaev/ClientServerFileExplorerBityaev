@@ -2,16 +2,7 @@ import socket
 import os
 
 
-# Function to get drives in the system
-def get_drives():
-    drives = []
-    for drive in range(65, 91):  # Letters A to Z
-        drive_letter = chr(drive) + ":\\"
-        if os.path.exists(drive_letter):
-            drives.append(drive_letter)
-    return drives
-
-# Function to get directories and subdirectories from a given directory
+# Function to get directories from a given path
 def get_directories(directory):
     dirs = []
     try:
@@ -22,13 +13,13 @@ def get_directories(directory):
         print(f"Error while accessing {directory}: {e}")
     return dirs
 
-# Function to send the drives and directories to the server
-def client_send_data():
+# Function to send the directories to the server
+def client_send_data(directory):
     # Set the server's IP address and port
     server_address = ('192.168.2.83', 9000)  # Replace with actual server IP
 
-    # Get drives on the client machine
-    drives = get_drives()
+    # Get directories in the specified path
+    directories = get_directories(directory)
 
     # Connect to the server
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,12 +27,10 @@ def client_send_data():
         client_socket.connect(server_address)
         print("Connected to server.")
 
-        # Send the drives first
-        for drive in drives:
-            directories = get_directories(drive)
-            message = f"DRIVE:{drive}\n" + "\n".join(directories)  # Send drive and its directories
-            client_socket.sendall(message.encode('utf-8'))
-            print(f"Sent drive: {drive} and directories to server.")
+        # Send directories to server
+        message = f"USERDIRECTORY:{directory}\n" + "\n".join(directories)  # Send directory name and its subdirectories
+        client_socket.sendall(message.encode('utf-8'))
+        print(f"Sent directory {directory} and its subdirectories to server.")
 
     except Exception as e:
         print(f"Error during connection: {e}")
@@ -49,5 +38,7 @@ def client_send_data():
         client_socket.close()
 
 
+# Initial directory to show is "C:/Users"
 if __name__ == "__main__":
-    client_send_data()
+    initial_directory = r'C:\Users'  # The starting directory to show (user directories)
+    client_send_data(initial_directory)
