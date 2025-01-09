@@ -8,7 +8,7 @@ def display_file_list(file_list):
         messagebox.showinfo("No Files", "No files received from the client.")
         return
 
-    # Create a Tkinter window to display the files
+    # Create a Tkintder window to display the files
     window = tk.Tk()
     window.title("Client's File Explorer")
     # Center the window
