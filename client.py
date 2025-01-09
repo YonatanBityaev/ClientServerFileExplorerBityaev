@@ -2,41 +2,47 @@ import socket
 import os
 
 
-# Function to get files from a directory (no file explorer on client side)
-def get_files_from_directory(directory):
-    file_list = []
-    print(f"Checking directory: {directory}")
-    if not os.path.exists(directory):
-        print(f"Directory does not exist: {directory}")
-        return file_list
-    # Walk through the directory and collect file paths
-    for root, dirs, files in os.walk(directory):
-        for name in files:
-            full_path = os.path.join(root, name)  # Full path of the file
-            file_list.append(full_path)
-    return file_list
+# Function to get drives in the system
+def get_drives():
+    drives = []
+    for drive in range(65, 91):  # Letters A to Z
+        drive_letter = chr(drive) + ":\\"
+        if os.path.exists(drive_letter):
+            drives.append(drive_letter)
+    return drives
 
+# Function to get directories and subdirectories from a given directory
+def get_directories(directory):
+    dirs = []
+    try:
+        for root, subdirs, _ in os.walk(directory):
+            if root == directory:  # Only immediate directories
+                dirs.extend(subdirs)
+    except Exception as e:
+        print(f"Error while accessing {directory}: {e}")
+    return dirs
 
-# Function to send the list of files to the server
-def client_send_file_list():
+# Function to send the drives and directories to the server
+def client_send_data():
     # Set the server's IP address and port
     server_address = ('192.168.2.83', 9000)  # Replace with actual server IP
-    # Directory to send files from (set the path here)
-    directory = r'C:\Users\Yonatan Bityaev\OneDrive\Documents'  # Change to a smaller directory
-    # Get the list of files from the selected directory
-    file_list = get_files_from_directory(directory)
-    if not file_list:
-        print("No files found in the directory.")
-        return
+
+    # Get drives on the client machine
+    drives = get_drives()
+
     # Connect to the server
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         client_socket.connect(server_address)
-        print("Connected to the server.")
-        # Convert the list to a string and send it to the server
-        file_list_str = "\n".join([os.path.basename(file) for file in file_list])  # Only send file names
-        client_socket.sendall(file_list_str.encode('utf-8'))
-        print(f"Sent {len(file_list)} files to the server.")
+        print("Connected to server.")
+
+        # Send the drives first
+        for drive in drives:
+            directories = get_directories(drive)
+            message = f"DRIVE:{drive}\n" + "\n".join(directories)  # Send drive and its directories
+            client_socket.sendall(message.encode('utf-8'))
+            print(f"Sent drive: {drive} and directories to server.")
+
     except Exception as e:
         print(f"Error during connection: {e}")
     finally:
@@ -44,5 +50,4 @@ def client_send_file_list():
 
 
 if __name__ == "__main__":
-    # Run the client to send the list of files
-    client_send_file_list()
+    client_send_data()
